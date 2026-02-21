@@ -481,6 +481,21 @@ static void InitEngine()
 		RenDevSetOnCommandLine = true;
 	}
 
+	// Auto-detect RtxDrv: if both RtxDrv.dll and RtxDrv.u are present, ensure RenderDevice is set to use them
+	if(!RenDevSetOnCommandLine
+		&& GFileManager->FileSize("RtxDrv.dll") >= 0
+		&& GFileManager->FileSize("RtxDrv.u") >= 0)
+	{
+		FString CurrentRenderDevice;
+		GConfig->GetFString("Engine.Engine", "RenderDevice", CurrentRenderDevice);
+
+		if(CurrentRenderDevice != "RtxDrv.RtxRenderDevice")
+		{
+			debugf("RtxDrv files detected, setting RenderDevice to RtxDrv.RtxRenderDevice");
+			GConfig->SetString("Engine.Engine", "RenderDevice", "RtxDrv.RtxRenderDevice");
+		}
+	}
+
 	// Create game engine.
 	UClass* EngineClass = LoadClass<UEngine>(NULL, "ini:Engine.Engine.GameEngine", NULL, LOAD_NoFail, NULL);
 
@@ -654,7 +669,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			{
 				InitSWRCFix();
 
-				if(!RenDevSetOnCommandLine && GEngine->GRenDev && appStricmp(GEngine->GRenDev->GetClass()->GetPathName(), "D3DDrv.D3DRenderDevice") == 0)
+				if(!RenDevSetOnCommandLine && GEngine->GRenDev && appStricmp(GEngine->GRenDev->GetClass()->GetPathName(), "D3DDrv.D3DRenderDevice") == 0
+					&& !(GFileManager->FileSize("RtxDrv.dll") >= 0 && GFileManager->FileSize("RtxDrv.u") >= 0))
 				{
 					EndFullscreen(); // D3D doesn't like being created while already in fullscreen
 					SwitchRenderDevice(LoadClass<URenderDevice>(NULL, "Mod.ModRenderDevice", NULL, LOAD_NoWarn | LOAD_Quiet, NULL));
